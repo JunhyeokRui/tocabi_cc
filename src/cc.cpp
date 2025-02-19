@@ -621,20 +621,21 @@ void CustomController::computeSlow()
             {
                     double reward = computeReward();
                     writeFile << (rd_cc_.control_time_us_ - time_inference_pre_)/1e6 << "\t";
-                    writeFile << phase_ << "\t";
-                    writeFile << DyrosMath::minmax_cut(rl_action_(num_action-1)*1/100.0, 0.0, 1/100.0) << "\t";
+                    // writeFile << phase_ << "\t";
+                    // writeFile << DyrosMath::minmax_cut(rl_action_(num_action-1)*1/100.0, 0.0, 1/100.0) << "\t";
 
-                    writeFile << rd_cc_.LF_FT.transpose() << "\t";
-                    writeFile << rd_cc_.RF_FT.transpose() << "\t";
-                    writeFile << rd_cc_.LF_CF_FT.transpose() << "\t";
-                    writeFile << rd_cc_.RF_CF_FT.transpose() << "\t";
+                    // writeFile << rd_cc_.LF_FT.transpose() << "\t";
+                    // writeFile << rd_cc_.RF_FT.transpose() << "\t";
+                    // writeFile << rd_cc_.LF_CF_FT.transpose() << "\t";
+                    // writeFile << rd_cc_.RF_CF_FT.transpose() << "\t";
 
-                    writeFile << rd_cc_.torque_desired.transpose()  << "\t";
-                    writeFile << q_noise_.transpose() << "\t";
-                    writeFile << q_dot_lpf_.transpose() << "\t";
-                    writeFile << euler_angle_.transpose() << "\t";
-                    writeFile << rd_cc_.q_dot_virtual_.transpose() << "\t";
-                    writeFile << rd_cc_.q_virtual_.transpose() << "\t";
+                    // writeFile << rd_cc_.torque_desired.transpose()  << "\t";
+                    // writeFile << q_noise_.transpose() << "\t";
+                    // writeFile << q_dot_lpf_.transpose() << "\t";
+                    // writeFile << rd_cc_.q_dot_virtual_.transpose() << "\t";
+                    // writeFile << rd_cc_.q_virtual_.transpose() << "\t";
+                    writeFile << state_.transpose() << "\t";
+                    writeFile << rl_action_.transpose() << "\t";
 
                     writeFile << value_ << "\t" << stop_by_value_thres_ <<"\t" << reward;
                 
