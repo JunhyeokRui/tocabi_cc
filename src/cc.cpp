@@ -14,7 +14,7 @@ CustomController::CustomController(RobotData &rd) : rd_(rd) //, wbc_(dc.wbc_)
         }
         else
         {
-            writeFile.open("/home/kim/tocabi_ws/src/tocabi_cc/result/data.csv", std::ofstream::out | std::ofstream::app);
+            writeFile.open("/home/rui/ubuntu-20-04/tocabi_ws/src/tocabi_cc/result/data.csv", std::ofstream::out | std::ofstream::app);
         }
         writeFile << std::fixed << std::setprecision(8);
     }
@@ -35,7 +35,7 @@ void CustomController::loadNetwork()
     rl_action_.setZero();
 
 
-    string cur_path = "/home/dyros/tocabi_ws/src/tocabi_cc/";
+    string cur_path = "/home/rui/ubuntu-20-04/tocabi_ws/src/tocabi_cc/";
 
     if (is_on_robot_)
     {
@@ -632,6 +632,7 @@ void CustomController::computeSlow()
                     writeFile << rd_cc_.torque_desired.transpose()  << "\t";
                     writeFile << q_noise_.transpose() << "\t";
                     writeFile << q_dot_lpf_.transpose() << "\t";
+                    writeFile << euler_angle_.transpose() << "\t";
                     writeFile << rd_cc_.q_dot_virtual_.transpose() << "\t";
                     writeFile << rd_cc_.q_virtual_.transpose() << "\t";
 
