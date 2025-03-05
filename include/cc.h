@@ -6,6 +6,8 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Joy.h>
 
+#include "onnxruntime_cxx_api.h"
+
 class CustomController
 {
 public:
@@ -22,66 +24,78 @@ public:
     RobotData &rd_;
     RobotData rd_cc_;
 
-    //////////////////////////////////////////// Donghyeon RL /////////////////////////////////////////
-    void loadNetwork();
+    void loadOnnX();
     void processNoise();
     void processObservation();
+    void processDiscriminator();
     void feedforwardPolicy();
     void initVariable();
-    double computeReward();
+    
+    void quatToTanNorm(const Eigen::Quaterniond& quaternion, Eigen::Vector3d& tangent, Eigen::Vector3d& normal);
     Eigen::Vector3d mat2euler(Eigen::Matrix3d mat);
+    Eigen::Vector3d quatRotateInverse(const Eigen::Quaterniond& q, const Eigen::Vector3d& v);
 
+
+    /////////////////////////////////// ONNX Runtime by Yongarry ///////////////////////////////////////
+    size_t input_number, output_number;
+    std::vector<std::string> input_names, output_names;
+    std::vector<const char *> input_names_char, output_names_char;
+    std::vector<Ort::Value> input_tensors, output_tensors;
+
+    std::vector<std::vector<float>> input_states_buffer;
+    std::vector<float> state_buffer_, state_cur_vector_;
+
+    Eigen::MatrixXd state_;
+    Eigen::MatrixXd state_cur_;
+    Eigen::MatrixXd state_cur_temp_;
+    // Eigen::MatrixXd state_buffer_;
+    Eigen::MatrixXd state_mean_;
+    Eigen::MatrixXd state_var_;
+
+
+    // for long history observation
+    std::vector<float> state_long_hist_, state_long_hist_buffer_;
+
+    int input_obs_idx_ = 0;
+
+    ///////////////////////////////////// Actor-Critic Network ///////////////////////////////////////
     static const int num_action = 13;
     static const int num_actuator_action = 12;
-    static const int num_cur_state = 50;
+    static const int num_cur_state = 50; // 37 + 12
+    // static const int num_cur_state = 48; // 36 + 12
     static const int num_cur_internal_state = 37;
+    // static const int num_cur_internal_state = 36;
     static const int num_state_skip = 2;
     static const int num_state_hist = 10;
-    static const int num_state = num_cur_internal_state*num_state_hist+num_action*(num_state_hist-1);
-    static const int num_hidden = 256;
+    static const int num_state = num_cur_internal_state*num_state_hist + num_action * (num_state_hist - 1);
 
-    Eigen::MatrixXd policy_net_w0_;
-    Eigen::MatrixXd policy_net_b0_;
-    Eigen::MatrixXd policy_net_w2_;
-    Eigen::MatrixXd policy_net_b2_;
-    Eigen::MatrixXd action_net_w_;
-    Eigen::MatrixXd action_net_b_;
-    Eigen::MatrixXd hidden_layer1_;
-    Eigen::MatrixXd hidden_layer2_;
-    Eigen::MatrixXd rl_action_;
+    // for long history observation
+    static const int num_long_hist_skip = 10;
+    static const int num_long_hist_len = 50;
+    static const int num_hist_state = num_long_hist_len * num_long_hist_skip;
 
-    Eigen::MatrixXd value_net_w0_;
-    Eigen::MatrixXd value_net_b0_;
-    Eigen::MatrixXd value_net_w2_;
-    Eigen::MatrixXd value_net_b2_;
-    Eigen::MatrixXd value_net_w_;
-    Eigen::MatrixXd value_net_b_;
-    Eigen::MatrixXd value_hidden_layer1_;
-    Eigen::MatrixXd value_hidden_layer2_;
+
+    Eigen::MatrixXd rl_action_, rl_action_pre_, torq_diff_, energy;
     double value_;
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     bool stop_by_value_thres_ = false;
     Eigen::Matrix<double, MODEL_DOF, 1> q_stop_;
     float stop_start_time_;
-    
-    Eigen::MatrixXd state_;
-    Eigen::MatrixXd state_cur_;
-    Eigen::MatrixXd state_buffer_;
-    Eigen::MatrixXd state_mean_;
-    Eigen::MatrixXd state_var_;
 
     std::ofstream writeFile;
 
     float phase_ = 0.0;
-
     bool is_on_robot_ = false;
     bool is_write_file_ = true;
+    bool is_hist_encoder_ = false;
+
     Eigen::Matrix<double, MODEL_DOF, 1> q_dot_lpf_;
 
     Eigen::Matrix<double, MODEL_DOF, 1> q_init_;
     Eigen::Matrix<double, MODEL_DOF, 1> q_noise_;
     Eigen::Matrix<double, MODEL_DOF, 1> q_noise_pre_;
-    Eigen::Matrix<double, MODEL_DOF, 1> q_vel_noise_;
+    Eigen::Matrix<double, MODEL_DOF, 1> q_vel_noise_, q_vel_noise_pre_;
 
     Eigen::Matrix<double, MODEL_DOF, 1> torque_init_;
     Eigen::Matrix<double, MODEL_DOF, 1> torque_spline_;
@@ -90,6 +104,10 @@ public:
 
     Eigen::Matrix<double, MODEL_DOF, MODEL_DOF> kp_;
     Eigen::Matrix<double, MODEL_DOF, MODEL_DOF> kv_;
+
+    Eigen::VectorQd Gravity_MJ_;
+
+    Eigen::Vector6d LF_CF_FT_pre, RF_CF_FT_pre = Eigen::Vector6d::Zero();
 
     float start_time_;
     float time_inference_pre_ = 0.0;
@@ -100,22 +118,39 @@ public:
     double action_dt_accumulate_ = 0.0;
 
     Eigen::Vector3d euler_angle_;
+    Eigen::Vector3d tan_vec, nor_vec;
 
+    // float ft_left_init_ = 500.0;
+    // float ft_right_init_ = 500.0;
+
+    string weight_dir_ = "";
     // Joystick
     ros::NodeHandle nh_;
 
     void joyCallback(const sensor_msgs::Joy::ConstPtr& joy);
+    void xBoxJoyCallback(const sensor_msgs::Joy::ConstPtr& joy);
     ros::Subscriber joy_sub_;
+    ros::Subscriber xbox_joy_sub_;
+
+    Eigen::Vector3d local_lin_vel_;
 
     double target_vel_x_ = 0.0;
     double target_vel_y_ = 0.0;
-    
-    Eigen::MatrixXd mocap_data;
-    Eigen::Vector6d LF_FT_pre_;
-    Eigen::Vector6d RF_FT_pre_;
-    Eigen::MatrixXd rl_action_pre_;
-    Eigen::Matrix<double, MODEL_DOF, 1> q_vel_noise_pre_;
+    double target_vel_yaw_ = 0.0;
+
+    float desired_vel_x = 0.0;
+    float desired_vel_yaw = 0.0;
 
 private:
     Eigen::VectorQd ControlVal_;
+
+    Ort::Env env;
+    Ort::Session session;
+    Ort::MemoryInfo memory_info;
+
+    const std::string reset = "\033[0m";     // Reset color
+    const std::string red = "\033[31m";     // Red
+    const std::string green = "\033[32m";   // Green
+    const std::string yellow = "\033[33m";  // Yellow
+    const std::string blue = "\033[34m"; 
 };

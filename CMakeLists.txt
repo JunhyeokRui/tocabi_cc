@@ -11,8 +11,8 @@ eigen_conversions
 )
 
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
+  INCLUDE_DIRS include /usr/local/include/onnxruntime
+  LIBRARIES ${PROJECT_NAME} onnxruntime
   CATKIN_DEPENDS tocabi_lib tocabi_msgs
 # DEPENDS system_lib
 )
@@ -31,8 +31,14 @@ add_library(${PROJECT_NAME}
 )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-target_link_libraries(${PROJECT_NAME}
+# Link with catkin and ONNX Runtime libraries
+target_include_directories(${PROJECT_NAME} PUBLIC 
+  /usr/local/include/onnxruntime
+)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
   ${catkin_LIBRARIES}
+  onnxruntime
 )
 
 install(TARGETS ${PROJECT_NAME}
