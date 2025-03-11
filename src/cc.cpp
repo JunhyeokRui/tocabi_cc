@@ -164,8 +164,16 @@ void CustomController::loadOnnX()
     const int filecount = 2;
     std::ifstream file[filecount];
 
-    file[0].open("/home/rui/ubuntu-20-04/tocabi_ws/src/tocabi_cc/weight/obs_mean_fixed.txt", std::ios::in);
-    file[1].open("/home/rui/ubuntu-20-04/tocabi_ws/src/tocabi_cc/weight/obs_variance_fixed.txt", std::ios::in); // updated path for obs_variance_fixed.txt
+    if (is_on_robot_)
+    {
+        file[0].open("/home/dyros/catkin_ws/src/tocabi_cc/weight/obs_mean_fixed.txt", std::ios::in);
+        file[1].open("/home/dyros/catkin_ws/src/tocabi_cc/weight/obs_variance_fixed.txt", std::ios::in); // updated path for obs_variance_fixed.txt
+    }
+    else
+    {
+        file[0].open("/home/rui/ubuntu-20-04/tocabi_ws/src/tocabi_cc/weight/obs_mean_fixed.txt", std::ios::in);
+        file[1].open("/home/rui/ubuntu-20-04/tocabi_ws/src/tocabi_cc/weight/obs_variance_fixed.txt", std::ios::in); // updated path for obs_variance_fixed.txt
+    } 
 
     for (int i = 0; i < filecount; i++) {
         if (!file[i].is_open()) {
@@ -533,17 +541,17 @@ void CustomController::computeSlow()
             if ((rd_cc_.control_time_us_ - time_inference_pre_)/1.0e6 >= 3.0)
                 cout << "Value: " << value_ << endl;
             
-            if (value_ < 100.0)
-            {
-                if (stop_by_value_thres_ == false)
-                {
-                    stop_by_value_thres_ = true;
-                    stop_start_time_ = rd_cc_.control_time_us_;
-                    q_stop_ = q_noise_;
-                    std::cout << "Stop by Value Function" << std::endl;
-                    cout << "Value: " << value_ << endl;
-                }
-            }
+            // if (value_ < 100.0)
+            // {
+            //     if (stop_by_value_thres_ == false)
+            //     {
+            //         stop_by_value_thres_ = true;
+            //         stop_start_time_ = rd_cc_.control_time_us_;
+            //         q_stop_ = q_noise_;
+            //         std::cout << "Stop by Value Function" << std::endl;
+            //         cout << "Value: " << value_ << endl;
+            //     }
+            // }
             if (is_write_file_)
             {
                 // writeFile << rd_cc_.q_virtual_(2) << "\t";
